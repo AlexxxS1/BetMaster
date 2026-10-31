@@ -1,7 +1,8 @@
 import { fetchJson } from "../http";
 import { teamId } from "../names";
 import type { NormalizedGame, NormalizedSnapshot } from "../normalized";
-import { addDays, asRec, bool, isoDate, num, seasonAnchor, sleep, str } from "../parse";
+import { HISTORY_WEEK_CAP, historyBounds } from "../history";
+import { addDays, asRec, bool, num, sleep, str } from "../parse";
 import type { GameStatus } from "../../shared/types";
 import type { EndedIn } from "../normalized";
 
@@ -91,11 +92,11 @@ export async function fetchNhlBundle(now = new Date()): Promise<{
   snapshots: NormalizedSnapshot[];
 }> {
   const games = new Map<string, NormalizedGame>();
-  let cursor = seasonAnchor(now, "09-15");
-  const horizon = addDays(isoDate(now), 10);
+  const bounds = historyBounds(now);
+  let cursor = bounds.start;
   const seen = new Set<string>();
 
-  while (seen.size < 16 && cursor <= horizon) {
+  while (seen.size < HISTORY_WEEK_CAP && cursor <= bounds.end) {
     if (seen.has(cursor)) break;
     seen.add(cursor);
     const payload = await fetchJson(`https://api-web.nhle.com/v1/schedule/${cursor}`);

@@ -1,6 +1,7 @@
 import type {
   DataMode,
   Factor,
+  HistoryWindow,
   InjuryNote,
   MatchDetail,
   MatchSummary,
@@ -10,6 +11,8 @@ import type {
 } from "../shared/types";
 import type { GameAnalysis } from "./analyze";
 import { analyzeSchedule } from "./analyze";
+import { buildMatchCharts } from "./charts";
+import { HISTORY_DAYS } from "./history";
 import {
   countGames,
   distinctOrigins,
@@ -54,6 +57,7 @@ export function statusOf(db: AppDatabase): StatusResponse {
     lastIngestAt: getMeta(db, "last_ingest_at"),
     mode,
     warnings: readWarnings(db),
+    history: historyWindow(db),
   };
 }
 
@@ -63,7 +67,7 @@ export function matchesResponse(db: AppDatabase): MatchSummary[] {
 }
 
 export function matchResponse(db: AppDatabase, id: string): MatchDetail | null {
-  const bundle = loadBundle(db);
+  const bundle = loadBundle(db, id);
   const game = bundle.games.find((item) => item.id === id);
   if (!game) return null;
   const summary = summarize(game, bundle);
@@ -107,6 +111,34 @@ export function matchResponse(db: AppDatabase, id: string): MatchDetail | null {
     prediction: predictionOf(game.league, game.status, analysis),
     injuryNote: INJURY_NOTE,
     snapshotNote: SNAPSHOT_NOTE,
+    charts: analysis
+      ? buildMatchCharts({
+          league: game.league,
+          homeAbbrev: summary.home.abbrev,
+          awayAbbrev: summary.away.abbrev,
+          neutral: game.neutral,
+          model: analysis.model,
+          formHome: (analysis.formHome ?? []).map((item) => ({
+            opponentAbbrev: abbrev(bundle.teams, item.opponentId),
+            teamScore: item.teamScore,
+            opponentScore: item.opponentScore,
+          })),
+          formAway: (analysis.formAway ?? []).map((item) => ({
+            opponentAbbrev: abbrev(bundle.teams, item.opponentId),
+            teamScore: item.teamScore,
+            opponentScore: item.opponentScore,
+          })),
+          h2h: (analysis.h2h ?? []).map((item) => ({
+            startsAt: item.startsAt,
+            homeAbbrev: abbrev(bundle.teams, item.homeTeamId),
+            awayAbbrev: abbrev(bundle.teams, item.awayTeamId),
+            homeScore: item.homeScore,
+            awayScore: item.awayScore,
+          })),
+          chart: analysis.chart,
+        })
+      : [],
+    history: historyWindow(db),
   };
 }
 
@@ -114,7 +146,7 @@ export function sourcesResponse(db: AppDatabase) {
   return listSources(db);
 }
 
-function loadBundle(db: AppDatabase) {
+function loadBundle(db: AppDatabase, focusId?: string) {
   const teams = new Map(listTeams(db).map((team) => [team.id, team]));
   const games = listGames(db);
   const snapshots = new Map(listSnapshots(db).map((snap) => [snap.teamId, snap]));
@@ -140,6 +172,7 @@ function loadBundle(db: AppDatabase) {
     })),
     injuries.map((injury) => ({ teamId: injury.teamId, status: injury.status })),
     injuryLeagues,
+    focusId,
   );
   return { teams, games, snapshots, injuries, analyses };
 }
@@ -202,7 +235,7 @@ function factorsOf(league: "nba" | "nhl", status: MatchSummary["status"], model:
       label: "Síla podle Elo",
       logit: elo.logit,
       used: true,
-      detail: `Elo před zápasem, bez domácí výhody: domácí ${Math.round(elo.eloHome)}, hosté ${Math.round(elo.eloAway)}. Sezóna začíná na ${INITIAL_ELO}.`,
+      detail: `Elo před zápasem, bez domácí výhody: domácí ${Math.round(elo.eloHome)}, hosté ${Math.round(elo.eloAway)}. Načtené okno začíná na ${INITIAL_ELO} a mezi sezónami se uvnitř okna neresetuje.`,
     },
     {
       key: "form",
@@ -221,7 +254,7 @@ function factorsOf(league: "nba" | "nhl", status: MatchSummary["status"], model:
       detail: h2h.used
         ? `${meetingLabel(h2h.games)}: aktuální domácí ${h2h.homeWins} výher, hosté ${h2h.awayWins}. Vzorek je malý, váha je proto nízká.`
         : h2h.games === 0
-          ? "V načtené sezóně se týmy ještě nepotkaly."
+          ? "V načteném roce se týmy ještě nepotkaly."
           : "Zatím jen jeden společný zápas. Faktor se započte až od dvou, aby jeden výsledek nepřevážil.",
     },
     {
@@ -318,6 +351,23 @@ function injuriesFor(injuries: StoredInjury[], teamId: string): InjuryNote[] {
       updatedAt: injury.updatedAt,
       origin: injury.origin,
     }));
+}
+
+function historyWindow(db: AppDatabase): HistoryWindow {
+  const finals = listGames(db).filter((game) => game.status === "final");
+  const dates = finals.map((game) => game.startsAt).sort();
+  const requested = Number(getMeta(db, "history_days"));
+  return {
+    from: dates[0] ?? null,
+    to: dates.at(-1) ?? null,
+    finalGames: finals.length,
+    nbaFinals: finals.filter((game) => game.league === "nba").length,
+    nhlFinals: finals.filter((game) => game.league === "nhl").length,
+    requestedDays: Number.isFinite(requested) && requested > 0 ? requested : HISTORY_DAYS,
+    note:
+      getMeta(db, "history_note") ??
+      "Historie se teprve stahuje, nebo jsou v databázi jen krátká vzorová data.",
+  };
 }
 
 function readWarnings(db: AppDatabase): string[] {

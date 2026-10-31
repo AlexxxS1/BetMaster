@@ -107,6 +107,38 @@ export type MatchSummary = {
   timing: Timing;
 };
 
+export type ChartPoint = {
+  label: string;
+  value: number;
+};
+
+export type ChartSeries = {
+  name: string;
+  tone: "home" | "away" | "neutral";
+  points: ChartPoint[];
+};
+
+export type MatchChart = {
+  id: string;
+  title: string;
+  measures: string;
+  effect: string;
+  summary: string;
+  kind: "line" | "bar";
+  color: "tone" | "sign";
+  series: ChartSeries[];
+};
+
+export type HistoryWindow = {
+  from: string | null;
+  to: string | null;
+  finalGames: number;
+  nbaFinals: number;
+  nhlFinals: number;
+  requestedDays: number;
+  note: string;
+};
+
 export type MatchDetail = MatchSummary & {
   season: string;
   homeSnapshot: Snapshot | null;
@@ -119,6 +151,8 @@ export type MatchDetail = MatchSummary & {
   prediction: Prediction;
   injuryNote: string;
   snapshotNote: string;
+  charts: MatchChart[];
+  history: HistoryWindow;
 };
 
 export type StatusResponse = {
@@ -129,6 +163,7 @@ export type StatusResponse = {
   lastIngestAt: string | null;
   mode: DataMode;
   warnings: string[];
+  history: HistoryWindow;
 };
 
 export type MatchesResponse = {

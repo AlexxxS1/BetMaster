@@ -13,6 +13,7 @@ import {
   record,
   when,
 } from "../format";
+import { ChartCard } from "../Charts";
 import { Logo } from "../Logo";
 import { useAppStatus } from "../status";
 
@@ -124,15 +125,29 @@ export function MatchPage() {
         </details>
       </section>
 
+      <section className="charts" data-testid="charts">
+        <h2>Grafy k odhadu</h2>
+        <p className="analysis-label">Analýza · ne sázka</p>
+        <p className="muted" data-testid="history-note">
+          {match.history.note} Odehraných zápasů v datech: {match.history.nhlFinals} NHL a{" "}
+          {match.history.nbaFinals} NBA
+          {match.history.from ? `, od ${match.history.from.slice(0, 10)}` : ""}. Čáry a sloupce u
+          zápasu berou jen výsledky před výkopem.
+        </p>
+        {match.charts.map((chart) => (
+          <ChartCard key={chart.id} chart={chart} />
+        ))}
+      </section>
+
       <section className="split">
         <FormColumn title={`Forma ${match.away.abbrev}`} rows={match.awayForm} />
         <FormColumn title={`Forma ${match.home.abbrev}`} rows={match.homeForm} />
       </section>
 
       <section>
-        <h2>Vzájemné zápasy</h2>
+        <h2>Vzájemné zápasy za načtený rok</h2>
         {match.h2h.length === 0 ? (
-          <p className="muted">V načtené sezóně se tyhle týmy ještě nepotkaly.</p>
+          <p className="muted">V načteném roce se tyhle týmy ještě nepotkaly.</p>
         ) : (
           <ul className="h2h">
             {match.h2h.map((row) => (

@@ -39,6 +39,25 @@ export type H2HRow = {
   winnerTeamId: string | null;
 };
 
+export type VenueSplit = {
+  homeGames: number;
+  homeWins: number;
+  awayGames: number;
+  awayWins: number;
+};
+
+export type EloPoint = {
+  label: string;
+  value: number;
+};
+
+export type ChartSnapshot = {
+  eloHome: EloPoint[];
+  eloAway: EloPoint[];
+  homeSplit: VenueSplit;
+  awaySplit: VenueSplit;
+};
+
 export type GameAnalysis = {
   model: ModelResult;
   eloHome: number;
@@ -47,15 +66,19 @@ export type GameAnalysis = {
   formAway: FormRow[];
   h2h: H2HRow[];
   injuriesApplied: boolean;
+  chart?: ChartSnapshot;
 };
 
 export function analyzeSchedule(
   games: AnalysisGame[],
   injuries: InjuryInput[],
   injuryLeagues: ReadonlySet<League>,
+  focusId?: string,
 ): Map<string, GameAnalysis> {
   const sorted = [...games].sort((a, b) => a.startsAt.localeCompare(b.startsAt) || a.id.localeCompare(b.id));
   const elo = new Map<string, number>();
+  const eloPath = new Map<string, EloPoint[]>();
+  const splits = new Map<string, VenueSplit>();
   const history: AnalysisGame[] = [];
   const out = new Map<string, GameAnalysis>();
   const absence = countAbsences(injuries);
@@ -67,6 +90,15 @@ export function analyzeSchedule(
     const awayPast = recentFinals(history, game.awayTeamId, 5);
     const meetings = priorMeetings(history, game.homeTeamId, game.awayTeamId);
     const h2h = countH2H(meetings, game.homeTeamId);
+    const chart =
+      game.id === focusId
+        ? {
+            eloHome: [...pathOf(eloPath, game.homeTeamId)],
+            eloAway: [...pathOf(eloPath, game.awayTeamId)],
+            homeSplit: { ...splitOf(splits, game.homeTeamId) },
+            awaySplit: { ...splitOf(splits, game.awayTeamId) },
+          }
+        : undefined;
     const homeAbs = absence.get(game.homeTeamId) ?? { out: 0, partial: 0 };
     const awayAbs = absence.get(game.awayTeamId) ?? { out: 0, partial: 0 };
     const injuriesApplied = game.status !== "final" && injuryLeagues.has(game.league);
@@ -92,8 +124,9 @@ export function analyzeSchedule(
       eloAway,
       formHome: homePast.map((item) => toForm(item, game.homeTeamId)).reverse(),
       formAway: awayPast.map((item) => toForm(item, game.awayTeamId)).reverse(),
-      h2h: meetings.slice(-5).reverse().map(toH2H),
+      h2h: meetings.slice(-24).reverse().map(toH2H),
       injuriesApplied,
+      chart,
     });
 
     if (
@@ -111,6 +144,10 @@ export function analyzeSchedule(
       );
       elo.set(game.homeTeamId, next.eloHome);
       elo.set(game.awayTeamId, next.eloAway);
+      const label = game.startsAt.slice(0, 10);
+      pathOf(eloPath, game.homeTeamId).push({ label, value: next.eloHome });
+      pathOf(eloPath, game.awayTeamId).push({ label, value: next.eloAway });
+      noteSplit(splits, game);
     }
     history.push(game);
   }
@@ -190,6 +227,34 @@ function toH2H(game: AnalysisGame): H2HRow {
     awayScore: away,
     winnerTeamId: home === away ? null : home > away ? game.homeTeamId : game.awayTeamId,
   };
+}
+
+function pathOf(paths: Map<string, EloPoint[]>, teamId: string): EloPoint[] {
+  let path = paths.get(teamId);
+  if (!path) {
+    path = [{ label: "start", value: INITIAL_ELO }];
+    paths.set(teamId, path);
+  }
+  return path;
+}
+
+function splitOf(splits: Map<string, VenueSplit>, teamId: string): VenueSplit {
+  let split = splits.get(teamId);
+  if (!split) {
+    split = { homeGames: 0, homeWins: 0, awayGames: 0, awayWins: 0 };
+    splits.set(teamId, split);
+  }
+  return split;
+}
+
+function noteSplit(splits: Map<string, VenueSplit>, game: AnalysisGame): void {
+  if (game.neutral || game.homeScore == null || game.awayScore == null || game.homeScore === game.awayScore) return;
+  const home = splitOf(splits, game.homeTeamId);
+  home.homeGames += 1;
+  if (game.homeScore > game.awayScore) home.homeWins += 1;
+  const away = splitOf(splits, game.awayTeamId);
+  away.awayGames += 1;
+  if (game.awayScore > game.homeScore) away.awayWins += 1;
 }
 
 function countAbsences(injuries: InjuryInput[]): Map<string, { out: number; partial: number }> {

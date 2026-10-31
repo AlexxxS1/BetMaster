@@ -218,6 +218,41 @@ button { cursor: pointer; }
 .factors span { font-variant-numeric: tabular-nums; color: var(--nhl); }
 .factors p { margin: 0.25rem 0 0; color: var(--muted); }
 
+.analysis-label {
+  display: inline-block;
+  margin: 0.2rem 0 0.6rem;
+  border: 2px solid var(--stamp);
+  color: var(--stamp);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.72rem;
+  font-weight: 650;
+  padding: 0.25rem 0.4rem;
+}
+.chart-card {
+  background: var(--raise);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 0.9rem 1rem 1rem;
+  margin: 0 0 0.8rem;
+}
+.chart-card h3 {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 1.35rem;
+  margin: 0;
+}
+.chart-card .measures,
+.chart-card .effect,
+.chart-summary { margin: 0.35rem 0 0; color: var(--muted); }
+.chart-card .effect { color: var(--text); }
+.chart-svg { width: 100%; height: auto; display: block; margin-top: 0.6rem; }
+.chart-axis { stroke: var(--line); stroke-width: 1; }
+.chart-label { fill: var(--muted); font-size: 12px; }
+.tone-home { stroke: var(--nhl); fill: var(--nhl); }
+.league-nba .tone-home { stroke: var(--nba); fill: var(--nba); }
+.tone-away { stroke: var(--loss); fill: var(--loss); }
+.tone-neutral { stroke: var(--ot); fill: var(--ot); }
+
 details { margin-top: 0.8rem; }
 details summary { cursor: pointer; }
 details li { margin: 0.35rem 0; color: var(--muted); }

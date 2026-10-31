@@ -115,3 +115,37 @@ test("ESPN scoreboard and injury rows map into the local shape", () => {
   assert.equal(injuries[0]?.playerName, "Mouhamed Gueye");
   assert.equal(injuries[0]?.sourceUrl, "https://www.espn.com/nba/player/_/id/99");
 });
+
+test("ESPN team schedule reads competition status and object scores", () => {
+  const game = mapEspnEvent(
+    {
+      id: "401810061",
+      date: "2025-11-11T03:30Z",
+      season: { year: 2026, displayName: "2025-26" },
+      competitions: [
+        {
+          neutralSite: false,
+          venue: { fullName: "Intuit Dome" },
+          status: { type: { state: "post", completed: true, detail: "Final", name: "STATUS_FINAL" } },
+          competitors: [
+            {
+              homeAway: "home",
+              score: { value: 105, displayValue: "105" },
+              team: { abbreviation: "LAC", displayName: "LA Clippers" },
+            },
+            {
+              homeAway: "away",
+              score: { value: 98, displayValue: "98" },
+              team: { abbreviation: "ATL", displayName: "Atlanta Hawks" },
+            },
+          ],
+        },
+      ],
+    },
+    "nba",
+  );
+  assert.equal(game?.status, "final");
+  assert.equal(game?.homeScore, 105);
+  assert.equal(game?.awayScore, 98);
+  assert.equal(game?.homeAbbrev, "LAC");
+});

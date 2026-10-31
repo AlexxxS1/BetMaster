@@ -87,3 +87,28 @@ test("overtime loss is not a regulation loss in the form row", () => {
   );
   assert.equal(next.get("home-again")?.formHome[0]?.result, "OTL");
 });
+
+test("head-to-head keeps every meeting in the loaded history", () => {
+  const meetings = [1, 2, 3, 4, 5, 6].map((day) =>
+    game({
+      id: `m${day}`,
+      startsAt: `2026-01-${String(day).padStart(2, "0")}T00:00:00Z`,
+      homeScore: day % 2 === 0 ? 1 : 4,
+      awayScore: day % 2 === 0 ? 3 : 2,
+    }),
+  );
+  const upcoming = game({
+    id: "next",
+    startsAt: "2026-03-01T00:00:00Z",
+    status: "scheduled",
+    homeScore: null,
+    awayScore: null,
+  });
+  const analyzed = analyzeSchedule([...meetings, upcoming], [], new Set(), "next");
+  const next = analyzed.get("next");
+  assert.equal(next?.h2h.length, 6);
+  assert.equal(next?.model.factors.h2h.used, true);
+  assert.equal(next?.formHome.length, 5);
+  assert.ok((next?.chart?.eloHome.length ?? 0) > 1);
+  assert.equal(next?.chart?.homeSplit.homeGames, 6);
+});

@@ -3,15 +3,12 @@ import { fetchJson } from "../http";
 import { slug, teamId } from "../names";
 import type { NormalizedGame, NormalizedSnapshot, RawInjury } from "../normalized";
 import type { EndedIn } from "../normalized";
+import { startsInWindow } from "../history";
 import {
-  addDays,
   asRec,
   bool,
   clip,
-  compactDate,
-  isoDate,
   num,
-  seasonAnchor,
   sleep,
   str,
 } from "../parse";
@@ -43,7 +40,7 @@ export function mapEspnEvent(raw: unknown, league: League): NormalizedGame | nul
     return null;
   }
 
-  const type = asRec(asRec(event.status)?.type);
+  const type = asRec(asRec(event.status)?.type) ?? asRec(asRec(competition.status)?.type);
   const detail = `${str(type?.detail) ?? ""} ${str(type?.name) ?? ""}`;
   const status = espnStatus(type, detail);
   const showScore = status === "final" || status === "live";
@@ -63,8 +60,8 @@ export function mapEspnEvent(raw: unknown, league: League): NormalizedGame | nul
     awayAbbrev,
     awayName: str(awayTeam.displayName) ?? awayAbbrev,
     awayLogo: logoOf(awayTeam),
-    homeScore: showScore ? num(home.score) : null,
-    awayScore: showScore ? num(away.score) : null,
+    homeScore: showScore ? scoreOf(home.score) : null,
+    awayScore: showScore ? scoreOf(away.score) : null,
     sourceName: "ESPN public scoreboard",
     sourceUrl: eventUrl(event, league),
   };
@@ -135,24 +132,75 @@ export function mapEspnInjuries(raw: unknown, league: League): RawInjury[] {
 }
 
 export async function fetchEspnGames(league: League, now = new Date()): Promise<NormalizedGame[]> {
-  const start = seasonAnchor(now, league === "nba" ? "10-15" : "09-15");
-  const end = addDays(isoDate(now), 8);
+  const teamIds = await espnTeamIds(league);
+  if (teamIds.length === 0) throw new Error("ESPN nevrátilo seznam týmů");
+  const probe = await fetchJson(scheduleUrl(league, teamIds[0]));
+  const currentYear = num(asRec(asRec(probe)?.season)?.year);
+  if (currentYear == null) throw new Error("ESPN nevrátilo rok sezóny");
   const games = new Map<string, NormalizedGame>();
-  let cursor = start;
-  while (cursor <= end) {
-    const url = `https://site.api.espn.com/apis/site/v2/sports/${LEAGUE_PATH[league]}/scoreboard?dates=${compactDate(cursor)}`;
+  absorb(games, league, probe, now);
+  const requests: string[] = [];
+  for (const teamId of teamIds) {
+    requests.push(scheduleUrl(league, teamId, currentYear, 2));
+    requests.push(scheduleUrl(league, teamId, currentYear - 1, 2));
+    requests.push(scheduleUrl(league, teamId, currentYear - 1, 3));
+  }
+  for (const url of requests) {
     const payload = await fetchJson(url);
-    const events = asRec(payload)?.events;
-    if (Array.isArray(events)) {
-      for (const event of events) {
-        const mapped = mapEspnEvent(event, league);
-        if (mapped) games.set(mapped.id, mapped);
-      }
-    }
-    cursor = addDays(cursor, 1);
-    await sleep(80);
+    absorb(games, league, payload, now);
+    await sleep(40);
   }
   return [...games.values()];
+}
+
+function scheduleUrl(league: League, teamId: string, season?: number, seasonType?: number): string {
+  const base = `https://site.api.espn.com/apis/site/v2/sports/${LEAGUE_PATH[league]}/teams/${teamId}/schedule`;
+  const params = new URLSearchParams();
+  if (season != null) params.set("season", String(season));
+  if (seasonType != null) params.set("seasontype", String(seasonType));
+  const query = params.toString();
+  return query ? `${base}?${query}` : base;
+}
+
+async function espnTeamIds(league: League): Promise<string[]> {
+  const payload = await fetchJson(
+    `https://site.api.espn.com/apis/site/v2/sports/${LEAGUE_PATH[league]}/teams`,
+  );
+  const sports = asRec(payload)?.sports;
+  const leagues = asRec(Array.isArray(sports) ? sports[0] : null)?.leagues;
+  const teams = asRec(Array.isArray(leagues) ? leagues[0] : null)?.teams;
+  if (!Array.isArray(teams)) return [];
+  const ids: string[] = [];
+  for (const item of teams) {
+    const team = asRec(asRec(item)?.team);
+    if (!team || team.isAllStar === true) continue;
+    const id = str(team.id);
+    if (id) ids.push(id);
+  }
+  return ids;
+}
+
+function absorb(
+  games: Map<string, NormalizedGame>,
+  league: League,
+  payload: unknown,
+  now: Date,
+): void {
+  const events = asRec(payload)?.events;
+  if (!Array.isArray(events)) return;
+  for (const event of events) {
+    const mapped = mapEspnEvent(event, league);
+    if (!mapped || !startsInWindow(mapped.startsAt, now)) continue;
+    games.set(mapped.id, mapped);
+  }
+}
+
+function scoreOf(value: unknown): number | null {
+  const direct = num(value);
+  if (direct != null) return direct;
+  const record = asRec(value);
+  if (!record) return null;
+  return num(record.value) ?? num(record.displayValue);
 }
 
 export async function fetchEspnStandings(league: League, fetchedAt: string) {

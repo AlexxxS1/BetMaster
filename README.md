@@ -81,7 +81,7 @@ P(domácí) = 1 / (1 + e^(−logit))
 
 Předpoklady, schválně ruční, ne natrénované na skrytých datech:
 
-- Elo začíná na 1500. Po zápase se posune o K = 24. Minulá sezóna se nepřenáší, protože se stahuje jen probíhající sezóna a pár dní dopředu.
+- Elo začíná na 1500 na začátku načteného okna (zhruba 365 dní) a po zápase se posune o K = 24. Uvnitř okna se mezi sezónami neresetuje.
 - Domácí výhoda je 40 Elo v NHL a 70 Elo v NBA (historicky zhruba 55–60 % výher domácích). Na neutrálním hřišti je 0.
 - Forma je průměrný rozdíl skóre z nejvýše pěti předchozích zápasů.
 - Vzájemné zápasy se započtou až od dvou společných utkání.
@@ -97,4 +97,4 @@ Brzy v sezóně je Elo hlučné, protože týmy mají málo zápasů. Model neř
 
 BetMaster is a local NBA/NHL match analysis app. It stores public results and standings, then shows form, head-to-head games, injury notes, and a transparent win probability. It is analysis, not betting advice. There are no accounts, payments, or bet slips.
 
-Run `npm install` and `npm run dev` in this repository, then open http://localhost:5180. `BETMASTER_SKIP_LIVE=1` keeps the checked-in sample. Live NHL results come from the public `api-web.nhle.com` JSON used by nhl.com. nba.com blocks automated reads (CDN 403, stats timeout), and Livesport.cz has no open API and disallows result pages in robots.txt, so those are not scraped. NBA scores, standings, and both injury lists use ESPN's public JSON, with `data/sample/snapshot.json` as the offline fallback. The model is hand-weighted Elo plus recent margin, head-to-head, and a capped injury adjustment. Weights are constants, not a fitted black box. Early-season ratings are noisy, and today's injury list is not applied to already played games.
+Run `npm install` and `npm run dev` in this repository, then open http://localhost:5180. `BETMASTER_SKIP_LIVE=1` keeps the checked-in sample. Live NHL results come from the public `api-web.nhle.com` JSON used by nhl.com, walked back about 365 days. nba.com blocks automated reads (CDN 403, stats timeout), and Livesport.cz has no open API and disallows result pages in robots.txt, so those are not scraped. NBA scores use ESPN's public team schedule (regular season and playoffs), clipped to the same window because the daily scoreboard rejects date ranges. Standings and both injury lists use ESPN's public JSON, with `data/sample/snapshot.json` as the offline fallback. The model is hand-weighted Elo plus recent margin, head-to-head across that year, and a capped injury adjustment. Elo carries across the season boundary inside the window. Weights are constants, not a fitted black box. Early-window ratings are noisy, and today's injury list is not applied to already played games.

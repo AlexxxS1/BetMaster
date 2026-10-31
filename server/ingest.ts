@@ -3,6 +3,7 @@ import {
   countGames,
   distinctOrigins,
   getMeta,
+  listGames,
   listInjuries,
   listTeams,
   replaceInjuries,
@@ -16,6 +17,7 @@ import { normName } from "./names";
 import type { NormalizedInjury } from "./normalized";
 import { fetchEspnGames, fetchEspnInjuries, fetchEspnStandings } from "./sources/espn";
 import { fetchNhlBundle } from "./sources/nhl";
+import { HISTORY_DAYS, coversHistory, historyNote, oldestFinal } from "./history";
 
 const STALE_MS = 6 * 60 * 60 * 1000;
 
@@ -49,7 +51,7 @@ async function ingestLive(db: AppDatabase): Promise<void> {
       url: "https://api-web.nhle.com/v1/schedule/now",
       mode: "live",
       fetchedAt,
-      detail: `Rozpis a výsledky z api-web.nhle.com, které používá nhl.com. Načteno ${nhl.games.length} zápasů probíhající sezóny plus nejbližší program.`,
+      detail: `Rozpis a výsledky z api-web.nhle.com za ${HISTORY_DAYS} dní zpět a nejbližší program. Načteno ${nhl.games.length} zápasů${oldestFinal(nhl.games) ? `, nejstarší výsledek ${oldestFinal(nhl.games)?.slice(0, 10)}` : ""}.`,
     });
     sources.push({
       id: "nhl-standings",
@@ -115,7 +117,7 @@ async function ingestLive(db: AppDatabase): Promise<void> {
       url: "https://www.espn.com/nba/scoreboard",
       mode: "live",
       fetchedAt,
-      detail: `Výsledky a rozpis NBA z veřejného JSON na site.api.espn.com. Načteno ${games.length} zápasů. nba.com v tomhle prostředí nešlo použít.`,
+      detail: `Výsledky a rozpis NBA z veřejného sezonního rozpisu ESPN (site.api.espn.com), oříznuté na ${HISTORY_DAYS} dní zpět. Načteno ${games.length} zápasů${oldestFinal(games) ? `, nejstarší výsledek ${oldestFinal(games)?.slice(0, 10)}` : ""}. Denní scoreboard rozsah datumů nebere. nba.com se nepoužívá.`,
     });
     console.log(`[betmaster] NBA ${games.length} zápasů, ${snapshots.length} týmů v tabulce`);
   } catch (error) {
@@ -141,6 +143,15 @@ async function ingestLive(db: AppDatabase): Promise<void> {
   writeSources(db, sources);
   setMeta(db, "warnings", JSON.stringify(warnings));
   setMeta(db, "last_ingest_at", fetchedAt);
+  const finals = listGames(db).filter((game) => game.status === "final");
+  const nhlOldest = oldestFinal(finals.filter((game) => game.league === "nhl"));
+  const nbaOldest = oldestFinal(finals.filter((game) => game.league === "nba"));
+  setMeta(db, "history_note", historyNote(nhlOldest, nbaOldest));
+  setMeta(
+    db,
+    "history_days",
+    coversHistory(nhlOldest) && coversHistory(nbaOldest) ? String(HISTORY_DAYS) : "",
+  );
 }
 
 async function ingestInjuries(
@@ -267,6 +278,7 @@ function retained(
 }
 
 function isFresh(db: AppDatabase): boolean {
+  if (getMeta(db, "history_days") !== String(HISTORY_DAYS)) return false;
   const last = getMeta(db, "last_ingest_at");
   if (!last || countGames(db) === 0) return false;
   return Date.now() - Date.parse(last) < STALE_MS;

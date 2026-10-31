@@ -171,7 +171,7 @@ export function predict(input: ModelInput): ModelResult {
 
 export function assumptionLines(): string[] {
   return [
-    `Elo začíná na ${INITIAL_ELO} a po každém odehraném zápase se posune koeficientem K = ${K_FACTOR}. Minulá sezóna se nepřenáší.`,
+    `Elo začíná na ${INITIAL_ELO} na začátku načteného okna (zhruba jeden rok) a po každém odehraném zápase se posune koeficientem K = ${K_FACTOR}. Uvnitř okna se mezi sezónami neresetuje.`,
     `Domácí výhoda je ${HOME_ELO.nhl} Elo v NHL a ${HOME_ELO.nba} Elo v NBA. Jsou to ručně zvolené konstanty (historicky zhruba 55–60 % výher domácích), ne odhad z kurzů.`,
     `Forma je průměrný rozdíl skóre z nejvýše pěti předchozích zápasů. Váha ve vzorci je ${FORM_WEIGHT}.`,
     `Vzájemné zápasy se započtou až od dvou společných utkání. Váha je ${H2H_WEIGHT}, schválně nízká.`,
