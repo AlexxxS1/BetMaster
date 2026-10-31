@@ -6,17 +6,17 @@ export function ChartCard({ chart }: { chart: MatchChart }) {
     <figure className="chart-card" data-testid={`chart-${chart.id}`}>
       <figcaption>
         <h3>{chart.title}</h3>
-        <p className="measures">{chart.measures}</p>
-        <p className="effect">{chart.effect}</p>
+        {chart.measures ? <p className="measures">{chart.measures}</p> : null}
+        {chart.effect ? <p className="effect">{chart.effect}</p> : null}
       </figcaption>
       {empty ? (
-        <p className="muted">V okně před zápasem na tohle není dost zápasů.</p>
+        <p className="muted">Před tímhle zápasem na to není dost výsledků.</p>
       ) : chart.kind === "line" ? (
         <LineChart series={chart.series} />
       ) : (
         <BarChart series={chart.series} color={chart.color} />
       )}
-      <p className="chart-summary">{chart.summary}</p>
+      {chart.summary ? <p className="chart-summary">{chart.summary}</p> : null}
     </figure>
   );
 }

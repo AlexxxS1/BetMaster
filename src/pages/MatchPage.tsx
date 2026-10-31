@@ -1,13 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import type { Factor, FormItem, InjuryNote, MatchDetail, Snapshot } from "../../shared/types";
+import type { FormItem, InjuryNote, MatchChart, MatchDetail, Snapshot } from "../../shared/types";
 import { getMatch } from "../api";
 import {
   formLetter,
   formTitle,
   injuryStatus,
   lean,
-  logit,
   originLabel,
   pct,
   record,
@@ -51,10 +50,11 @@ export function MatchPage() {
   const home = match.prediction.homeWinProb;
   const timing =
     match.timing === "retro"
-      ? "Zpětná analýza. Počítáno jen z výsledků před tímto zápasem."
+      ? "Zápas už se hrál. Odhad je z toho, co bylo známo před výkopem."
       : match.timing === "live"
-        ? "Zápas právě probíhá. Čísla jsou z dat před výkopem."
-        : "Předzápasová analýza.";
+        ? "Zápas právě běží. Odhad je z dat před výkopem."
+        : "Odhad před zápasem.";
+  const charts = customerCharts(match);
 
   return (
     <article className={`detail league-${match.league}`}>
@@ -94,47 +94,21 @@ export function MatchPage() {
 
       <section className="predict-card">
         <p className="stamp">Analýza · ne sázka</p>
-        <h1>Náznak skóre</h1>
+        <h1>Jak by zápas mohl dopadnout</h1>
         <p className="scoreline" data-testid="score-lean">
           {lean(match.prediction.scoreLeanAway, match.league)}
           <span> : </span>
           {lean(match.prediction.scoreLeanHome, match.league)}
           <small> {match.prediction.scoreUnit}</small>
         </p>
-        <p className="muted">
-          Není to kurz. Je to jen přepočet stejné pravděpodobnosti na běžný počet{" "}
-          {match.prediction.scoreUnit}. Domácí jsou vpravo.
+        <p className="customer-note">
+          Tohle je analýza zápasu, ne tip k sázce. Čísla říkají, jak utkání může vypadat.
         </p>
-      </section>
-
-      <section>
-        <h2>Faktory modelu</h2>
-        <ol className="factors" data-testid="factors">
-          {match.prediction.factors.map((factor) => (
-            <FactorRow key={factor.key} factor={factor} />
-          ))}
-        </ol>
-        <details>
-          <summary>Jak se číslo počítá</summary>
-          <p>{match.prediction.formula}</p>
-          <ul>
-            {match.prediction.assumptions.map((line) => (
-              <li key={line}>{line}</li>
-            ))}
-          </ul>
-        </details>
       </section>
 
       <section className="charts" data-testid="charts">
-        <h2>Grafy k odhadu</h2>
-        <p className="analysis-label">Analýza · ne sázka</p>
-        <p className="muted" data-testid="history-note">
-          {match.history.note} Odehraných zápasů v datech: {match.history.nhlFinals} NHL a{" "}
-          {match.history.nbaFinals} NBA
-          {match.history.from ? `, od ${match.history.from.slice(0, 10)}` : ""}. Čáry a sloupce u
-          zápasu berou jen výsledky před výkopem.
-        </p>
-        {match.charts.map((chart) => (
+        <h2>Jak týmy vypadají</h2>
+        {charts.map((chart) => (
           <ChartCard key={chart.id} chart={chart} />
         ))}
       </section>
@@ -145,10 +119,13 @@ export function MatchPage() {
       </section>
 
       <section>
-        <h2>Vzájemné zápasy za načtený rok</h2>
-        {match.h2h.length === 0 ? (
-          <p className="muted">V načteném roce se tyhle týmy ještě nepotkaly.</p>
-        ) : (
+        <h2>Vzájemné zápasy</h2>
+        <p className="muted">
+          {match.h2h.length === 0
+            ? "Za poslední rok se tyhle týmy nepotkaly."
+            : `Za poslední rok spolu hrály ${match.h2h.length}×.`}
+        </p>
+        {match.h2h.length === 0 ? null : (
           <ul className="h2h">
             {match.h2h.map((row) => (
               <li key={row.gameId}>
@@ -166,11 +143,11 @@ export function MatchPage() {
         <InjuryColumn title={`Absence ${match.away.abbrev}`} rows={match.awayInjuries} />
         <InjuryColumn title={`Absence ${match.home.abbrev}`} rows={match.homeInjuries} />
       </section>
-      <p className="muted">{match.injuryNote}</p>
+      <p className="muted">Jde o aktuální seznam absencí.</p>
 
       <section data-testid="sources-panel">
-        <h2>Odkud je předzápasové hodnocení</h2>
-        <p className="muted">{match.snapshotNote}</p>
+        <h2>Jak stojí v tabulce</h2>
+        <p className="muted">Aktuální bilance obou týmů.</p>
         <div className="split">
           <Rating team={match.away} league={match.league} snapshot={match.awaySnapshot} />
           <Rating team={match.home} league={match.league} snapshot={match.homeSnapshot} />
@@ -200,16 +177,83 @@ function TeamHead({ team, role }: { team: MatchDetail["home"]; role: string }) {
   );
 }
 
-function FactorRow({ factor }: { factor: Factor }) {
-  return (
-    <li className={factor.used ? "" : "unused"}>
-      <div>
-        <strong>{factor.label}</strong>
-        <span>{factor.used ? logit(factor.logit) : "mimo výpočet"}</span>
-      </div>
-      <p>{factor.detail}</p>
-    </li>
-  );
+function customerCharts(match: MatchDetail): MatchChart[] {
+  return match.charts.flatMap((chart) => {
+    if (chart.id === "form") {
+      return [
+        {
+          ...chart,
+          title: "Forma",
+          measures: `${formGlance(match.away.abbrev, match.awayForm)} ${formGlance(match.home.abbrev, match.homeForm)}`,
+          effect: "",
+          summary: "",
+        },
+      ];
+    }
+    if (chart.id === "h2h") {
+      return [
+        {
+          ...chart,
+          title: "Vzájemné zápasy",
+          measures:
+            match.h2h.length === 0
+              ? "Za poslední rok se tyhle týmy nepotkaly."
+              : "Rozdíl skóre z pohledu domácích v každém společném zápase.",
+          effect: "",
+          summary: "",
+        },
+      ];
+    }
+    if (chart.id === "home-away") {
+      return [
+        {
+          ...chart,
+          title: "Doma a venku",
+          measures: "Jak se jim daří na vlastním hřišti a venku.",
+          effect: "",
+          summary: plainRecord(chart.summary),
+        },
+      ];
+    }
+    if (chart.id === "injuries") {
+      return [
+        {
+          ...chart,
+          title: "Absence",
+          measures: `${absenceGlance(match.away.abbrev, match.awayInjuries.length)} ${absenceGlance(match.home.abbrev, match.homeInjuries.length)}`,
+          effect: "",
+          summary: "",
+          series: chart.series.map((series) => ({
+            ...series,
+            points: series.points.map((point) => ({
+              ...point,
+              label: point.label.replace(/ plné$/, " mimo hru").replace(/ částečné$/, " den na den"),
+            })),
+          })),
+        },
+      ];
+    }
+    return [];
+  });
+}
+
+function formGlance(name: string, rows: FormItem[]): string {
+  if (rows.length === 0) return `${name} zatím nemá předchozí zápas.`;
+  const wins = rows.filter((row) => row.result === "W").length;
+  const word = wins === 1 ? "výhru" : wins > 1 && wins < 5 ? "výhry" : "výher";
+  return `${name} má z posledních ${rows.length} zápasů ${wins} ${word}.`;
+}
+
+function absenceGlance(name: string, count: number): string {
+  if (count === 0) return `${name}: nikdo nechybí.`;
+  if (count === 1) return `${name}: chybí 1 hráč.`;
+  if (count < 5) return `${name}: chybí ${count} hráči.`;
+  return `${name}: chybí ${count} hráčů.`;
+}
+
+function plainRecord(summary: string): string {
+  if (/elo|logit|příspěvek|váha|vzorec/i.test(summary)) return "";
+  return summary;
 }
 
 function FormColumn({ title, rows }: { title: string; rows: FormItem[] }) {

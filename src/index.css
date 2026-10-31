@@ -88,14 +88,15 @@ button { cursor: pointer; }
 .refresh:disabled { opacity: 0.6; cursor: wait; }
 .linkish { border: 0; padding: 0; color: var(--focus); text-decoration: underline; }
 
-.main { padding: 1.4rem 1.6rem 3rem; max-width: 980px; }
-.page-head h1, .detail h2, .sources h2, .day h2 {
+.main { padding: 1.5rem 1.7rem 3.2rem; max-width: 1040px; }
+.page-head h1, .detail h2, .sources h2, .day h2, .predict-card h1 {
   font-family: "Fraunces", Georgia, serif;
   font-weight: 600;
   letter-spacing: -0.03em;
   margin: 0 0 0.35rem;
 }
-.page-head p { margin: 0; max-width: 42rem; }
+.page-head h1 { font-size: 2.45rem; line-height: 1.05; }
+.page-head p { margin: 0; max-width: 40rem; font-size: 1.05rem; line-height: 1.45; }
 
 .banner {
   margin: 0 0 1.2rem;
@@ -113,20 +114,43 @@ button { cursor: pointer; }
 .segment { display: flex; gap: 0.25rem; }
 .segment button.on { background: var(--text); color: #172015; border-color: var(--text); }
 
-.day { margin-top: 1.2rem; }
-.day h2 { font-size: 1.25rem; text-transform: capitalize; }
+.day { margin-top: 1.45rem; }
+.day h2 { font-size: 1.4rem; text-transform: capitalize; }
 
 .match {
   display: grid;
-  grid-template-columns: 6.2rem minmax(0, 1fr) 7rem;
-  gap: 0.8rem;
+  grid-template-columns: 6.4rem minmax(0, 1fr) auto;
+  gap: 0.85rem 1rem;
   align-items: center;
-  padding: 0.85rem 0;
-  border-bottom: 1px solid var(--line);
+  margin: 0 0 0.7rem;
+  padding: 0.85rem 0.95rem 0.85rem 1rem;
+  border: 1px solid var(--line);
+  border-left-width: 4px;
+  border-radius: 16px;
   text-decoration: none;
   color: inherit;
+  background: var(--raise);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.16);
 }
-.match:hover { background: rgba(255, 255, 255, 0.02); }
+.match.league-nhl {
+  border-left-color: var(--nhl);
+  background:
+    linear-gradient(105deg, color-mix(in srgb, var(--nhl) 18%, transparent), transparent 46%),
+    var(--raise);
+}
+.match.league-nba {
+  border-left-color: var(--nba);
+  background:
+    linear-gradient(105deg, color-mix(in srgb, var(--nba) 20%, transparent), transparent 46%),
+    var(--raise);
+}
+.match:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--focus) 40%, var(--line));
+}
+@media (prefers-reduced-motion: reduce) {
+  .match:hover { transform: none; }
+}
 .when { display: flex; flex-direction: column; gap: 0.25rem; color: var(--muted); }
 .chip {
   display: inline-flex;
@@ -141,9 +165,12 @@ button { cursor: pointer; }
 .chip-nba { color: var(--nba); border-color: color-mix(in srgb, var(--nba) 55%, var(--line)); }
 .live { color: var(--stamp); font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; }
 
-.side { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto auto; gap: 0.55rem; align-items: center; min-height: 2.4rem; }
-.side strong { margin-right: 0.4rem; }
+.sides { display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
+.side { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto auto; gap: 0.55rem; align-items: center; min-height: 2.5rem; }
+.side > div { min-width: 0; }
+.side strong { margin-right: 0.4rem; letter-spacing: 0.03em; }
 .side span, .side em { color: var(--muted); font-style: normal; }
+.side span { font-size: 0.92rem; }
 .side em { font-size: 0.75rem; }
 .pts { font-family: "Fraunces", Georgia, serif; font-size: 1.25rem; }
 .logo, .badge {
@@ -172,8 +199,17 @@ button { cursor: pointer; }
   gap: 0.55rem;
   margin: 0;
 }
-.lean-col { text-align: right; }
-.lean-col strong { display: block; font-family: "Fraunces", Georgia, serif; font-size: 1.35rem; }
+.lean-col {
+  text-align: center;
+  min-width: 6.6rem;
+  padding: 0.45rem 0.7rem;
+  border-radius: 14px;
+  background: #10150e;
+  border: 1px solid var(--line);
+}
+.lean-col strong { display: block; font-family: "Fraunces", Georgia, serif; font-size: 1.55rem; line-height: 1; }
+.league-nhl .lean-col strong { color: var(--nhl); }
+.league-nba .lean-col strong { color: var(--nba); }
 .lean-col small, .team-head small { color: var(--muted); }
 
 .detail { display: flex; flex-direction: column; gap: 1.1rem; }
@@ -181,15 +217,40 @@ button { cursor: pointer; }
 .kicker { display: flex; flex-wrap: wrap; gap: 0.55rem 0.9rem; align-items: center; margin: 0; }
 .matchup {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(180px, 280px) minmax(0, 1fr);
-  gap: 1rem;
-  align-items: center;
+  grid-template-columns: minmax(0, 1fr) minmax(200px, 280px) minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: stretch;
+  padding: 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--raise);
 }
-.team-head { display: flex; gap: 0.7rem; align-items: center; }
+.league-nhl .matchup {
+  background:
+    radial-gradient(ellipse at 0% 40%, color-mix(in srgb, var(--nhl) 24%, transparent), transparent 58%),
+    radial-gradient(ellipse at 100% 40%, color-mix(in srgb, var(--nhl) 30%, transparent), transparent 52%),
+    var(--raise);
+}
+.league-nba .matchup {
+  background:
+    radial-gradient(ellipse at 0% 40%, color-mix(in srgb, var(--nba) 24%, transparent), transparent 58%),
+    radial-gradient(ellipse at 100% 40%, color-mix(in srgb, var(--nba) 32%, transparent), transparent 52%),
+    var(--raise);
+}
+.team-head {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.75rem 0.85rem;
+  border-radius: 16px;
+  background: rgba(16, 21, 14, 0.62);
+  border: 1px solid var(--line);
+}
 .team-head:last-child { justify-content: flex-end; text-align: right; }
-.team-head strong { display: block; font-family: "Fraunces", Georgia, serif; font-size: 1.45rem; line-height: 1.05; }
-.prob-nums { display: flex; justify-content: space-between; font-family: "Fraunces", Georgia, serif; font-size: 1.7rem; }
-.prob-bar { display: flex; height: 10px; border-radius: 999px; overflow: hidden; background: var(--line); }
+.team-head strong { display: block; font-family: "Fraunces", Georgia, serif; font-size: 1.7rem; line-height: 1.05; }
+.prob-block { display: flex; flex-direction: column; justify-content: center; padding: 0.35rem 0.15rem; }
+.prob-nums { display: flex; justify-content: space-between; font-family: "Fraunces", Georgia, serif; font-size: 2.15rem; line-height: 1; }
+.prob-bar { display: flex; height: 12px; margin-top: 0.55rem; border-radius: 999px; overflow: hidden; background: #10150e; }
 .prob-bar .away { background: var(--faint); }
 .league-nhl .prob-bar .home { background: var(--nhl); }
 .league-nba .prob-bar .home { background: var(--nba); }
@@ -203,13 +264,17 @@ button { cursor: pointer; }
 }
 .predict-card {
   position: relative;
-  padding: 1rem 1rem 0.9rem;
+  padding: 1.15rem 1.15rem 1rem;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 40%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 42%),
     var(--raise);
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: 18px;
 }
+.league-nhl .predict-card { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--nhl) 28%, transparent); }
+.league-nba .predict-card { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--nba) 32%, transparent); }
+.predict-card h1 { font-size: 1.85rem; max-width: 18ch; }
+.customer-note { margin: 0.35rem 0 0; max-width: 38rem; line-height: 1.45; }
 .stamp {
   position: absolute;
   top: 0.8rem;
@@ -250,11 +315,13 @@ button { cursor: pointer; }
   padding: 0.25rem 0.4rem;
 }
 .chart-card {
-  background: var(--raise);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 30%),
+    var(--raise);
   border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 0.9rem 1rem 1rem;
-  margin: 0 0 0.8rem;
+  border-radius: 16px;
+  padding: 0.95rem 1rem 1rem;
+  margin: 0 0 0.75rem;
 }
 .chart-card h3 {
   font-family: "Fraunces", Georgia, serif;
@@ -279,14 +346,21 @@ details li { margin: 0.35rem 0; color: var(--muted); }
 
 .split { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 .form-list, .h2h, .injuries, .sources { list-style: none; padding: 0; margin: 0; }
+.form-list, .h2h {
+  background: var(--raise);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 0.2rem 0.85rem;
+}
 .form-list li, .h2h li {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 0.6rem;
   align-items: center;
-  padding: 0.35rem 0;
+  padding: 0.5rem 0;
   border-bottom: 1px solid var(--line);
 }
+.form-list li:last-child, .h2h li:last-child { border-bottom: 0; }
 .pill {
   width: 1.8rem;
   text-align: center;
@@ -354,9 +428,23 @@ details li { margin: 0.35rem 0; color: var(--muted); }
   .nav-links a.active { box-shadow: inset 0 -3px 0 var(--nhl); }
   .nav-hint { display: none; }
   .brand small { display: none; }
-  .match, .matchup, .split, .form-list li { grid-template-columns: 1fr; }
+  .match {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "when lean"
+      "sides sides";
+    gap: 0.55rem 0.7rem;
+  }
+  .when { grid-area: when; flex-direction: row; flex-wrap: wrap; align-items: center; }
+  .sides { grid-area: sides; }
+  .lean-col { grid-area: lean; min-width: 5.6rem; align-self: start; }
+  .matchup, .split { grid-template-columns: 1fr; }
+  .form-list li { grid-template-columns: auto minmax(0, 1fr); }
+  .form-list time { grid-column: 2; }
   .team-head:last-child { justify-content: flex-start; text-align: left; }
-  .lean-col { text-align: left; }
   .stamp { position: static; display: inline-block; transform: none; margin-bottom: 0.5rem; }
-  .main { padding: 1rem; }
+  .page-head h1 { font-size: 1.85rem; }
+  .prob-nums { font-size: 1.8rem; }
+  .scoreline { font-size: 2.2rem; }
+  .main { padding: 0.9rem 0.85rem 2.4rem; }
 }

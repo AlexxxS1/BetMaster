@@ -45,7 +45,7 @@ export function Shell() {
           {analysisTo ? (
             <NavLink to={analysisTo} data-testid="nav-analyza">
               <span className="nav-label">Analýza</span>
-              <small className="nav-hint">Faktory a grafy zápasu</small>
+              <small className="nav-hint">Jak zápas vypadá</small>
             </NavLink>
           ) : (
             <span className="nav-disabled" data-testid="nav-analyza" title="Nejdřív otevři zápas">
@@ -67,9 +67,8 @@ export function Shell() {
         {error ? <p className="banner banner-bad">API neodpovídá: {error}</p> : null}
         <Outlet />
         <footer className="footnote">
-          Čísla jsou analýza veřejných výsledků, ne doporučení k sázce. Model je jednoduchý baseline s
-          zveřejněnými konstantami.
-          {status?.lastIngestAt ? ` Poslední pokus o stažení: ${when(status.lastIngestAt)}.` : ""}
+          Tohle je analýza zápasu, ne tip k sázce.
+          {status?.lastIngestAt ? ` Data naposledy ${when(status.lastIngestAt)}.` : ""}
         </footer>
       </div>
     </div>

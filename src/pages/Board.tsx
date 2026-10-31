@@ -61,7 +61,7 @@ export function Board() {
     <section>
       <div className="page-head">
         <h1>{view === "upcoming" ? "Nejbližší zápasy" : "Poslední výsledky"}</h1>
-        <p>Otevři zápas a uvidíš formu, vzájemné zápasy, absence a z čeho se skládá pravděpodobnost.</p>
+        <p>Otevři zápas. Uvidíš, jak týmy vypadají, formu, vzájemné zápasy a kdo chybí.</p>
       </div>
       <div className="toolbar">
         <div className="segment" role="group" aria-label="Soutěž">
@@ -125,7 +125,7 @@ export function Board() {
                 </div>
                 <div className="lean-col">
                   <strong>{pct(match.modelHomeWinProb)}</strong>
-                  <small>{match.status === "final" ? "model před zápasem" : "domácí"}</small>
+                  <small>{match.status === "final" ? "odhad před zápasem" : "šance domácích"}</small>
                 </div>
               </Link>
             ))}
