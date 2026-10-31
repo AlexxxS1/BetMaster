@@ -172,8 +172,8 @@ export function MatchPage() {
         <h2>Odkud je předzápasové hodnocení</h2>
         <p className="muted">{match.snapshotNote}</p>
         <div className="split">
-          <Rating team={match.away.name} league={match.league} snapshot={match.awaySnapshot} />
-          <Rating team={match.home.name} league={match.league} snapshot={match.homeSnapshot} />
+          <Rating team={match.away} league={match.league} snapshot={match.awaySnapshot} />
+          <Rating team={match.home} league={match.league} snapshot={match.homeSnapshot} />
         </div>
       </section>
 
@@ -190,7 +190,7 @@ export function MatchPage() {
 function TeamHead({ team, role }: { team: MatchDetail["home"]; role: string }) {
   return (
     <div className="team-head">
-      <Logo team={team} />
+      <Logo team={team} size={72} />
       <div>
         <small>{role}</small>
         <strong>{team.name}</strong>
@@ -266,14 +266,17 @@ function Rating({
   league,
   snapshot,
 }: {
-  team: string;
+  team: MatchDetail["home"];
   league: MatchDetail["league"];
   snapshot: Snapshot | null;
 }) {
   if (!snapshot) {
     return (
       <div className="rating">
-        <h3>{team}</h3>
+        <h3>
+          <Logo team={team} size={32} />
+          {team.name}
+        </h3>
         <p className="muted">
           Tabulka pro tenhle tým chybí.{" "}
           <Link to="/sources">Podívat se na zdroje</Link>
@@ -289,7 +292,10 @@ function Rating({
         : `pořadí v lize ${snapshot.rank}`;
   return (
     <div className="rating">
-      <h3>{team}</h3>
+      <h3>
+        <Logo team={team} size={32} />
+        {team.name}
+      </h3>
       <p className="record">
         {record(snapshot, league)}
         {snapshot.tablePoints != null ? ` · ${snapshot.tablePoints} bodů` : ""}

@@ -1,24 +1,62 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useAppStatus } from "./status";
 import { when } from "./format";
+
+const ANALYSIS_KEY = "betmaster-analysis";
 
 export function Shell() {
   const { status, error, refresh } = useAppStatus();
   const refreshing = status?.refreshing ?? false;
+  const { pathname } = useLocation();
+  const openMatch = pathname.startsWith("/match/")
+    ? decodeURIComponent(pathname.slice("/match/".length).split("/")[0] ?? "")
+    : "";
+  const [remembered, setRemembered] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      if (openMatch) {
+        sessionStorage.setItem(ANALYSIS_KEY, openMatch);
+        setRemembered(openMatch);
+      } else {
+        setRemembered(sessionStorage.getItem(ANALYSIS_KEY));
+      }
+    } catch {
+      setRemembered(openMatch || null);
+    }
+  }, [openMatch]);
+
+  const analysisTo = openMatch ? `/match/${openMatch}` : remembered ? `/match/${remembered}` : null;
 
   return (
     <div className="shell">
       <header className="nav">
-        <NavLink to="/" className="brand" end>
+        <NavLink to="/" className={() => "brand"} end>
           <span className="brand-mark">Bet</span>
           <span className="brand-mark accent">Master</span>
           <small>Analýza zápasů NBA a NHL</small>
         </NavLink>
-        <nav className="nav-links">
-          <NavLink to="/" end>
-            Zápasy
+        <nav className="nav-links" aria-label="Hlavní menu">
+          <NavLink to="/" end data-testid="nav-zapasy">
+            <span className="nav-label">Zápasy</span>
+            <small className="nav-hint">Seznam utkání</small>
           </NavLink>
-          <NavLink to="/sources">Zdroje</NavLink>
+          {analysisTo ? (
+            <NavLink to={analysisTo} data-testid="nav-analyza">
+              <span className="nav-label">Analýza</span>
+              <small className="nav-hint">Faktory a grafy zápasu</small>
+            </NavLink>
+          ) : (
+            <span className="nav-disabled" data-testid="nav-analyza" title="Nejdřív otevři zápas">
+              <span className="nav-label">Analýza</span>
+              <small className="nav-hint">Nejdřív otevři zápas</small>
+            </span>
+          )}
+          <NavLink to="/sources" data-testid="nav-zdroje">
+            <span className="nav-label">Zdroje</span>
+            <small className="nav-hint">Odkud jsou data</small>
+          </NavLink>
         </nav>
         <button className="refresh" type="button" onClick={() => void refresh()} disabled={refreshing}>
           {refreshing ? "Obnovuji…" : "Obnovit data"}

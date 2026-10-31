@@ -63,13 +63,20 @@ button { cursor: pointer; }
 .brand small { margin-top: 0.45rem; line-height: 1.35; }
 
 .nav-links { display: flex; flex-direction: column; gap: 0.35rem; }
-.nav-links a {
+.nav-links a,
+.nav-disabled {
   color: var(--text);
   text-decoration: none;
-  padding: 0.4rem 0.55rem;
-  border-radius: 999px;
+  padding: 0.55rem 0.7rem;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
 }
-.nav-links a.active { background: var(--raise); }
+.nav-links a.active { background: var(--raise); box-shadow: inset 3px 0 0 var(--nhl); }
+.nav-label { font-weight: 600; }
+.nav-hint { color: var(--muted); font-size: 0.82rem; line-height: 1.3; }
+.nav-disabled { opacity: 0.55; }
 
 .refresh, .segment button, .linkish {
   background: transparent;
@@ -134,23 +141,36 @@ button { cursor: pointer; }
 .chip-nba { color: var(--nba); border-color: color-mix(in srgb, var(--nba) 55%, var(--line)); }
 .live { color: var(--stamp); font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; }
 
-.side { display: grid; grid-template-columns: 32px minmax(0, 1fr) auto auto; gap: 0.55rem; align-items: center; min-height: 2.1rem; }
+.side { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto auto; gap: 0.55rem; align-items: center; min-height: 2.4rem; }
 .side strong { margin-right: 0.4rem; }
 .side span, .side em { color: var(--muted); font-style: normal; }
 .side em { font-size: 0.75rem; }
 .pts { font-family: "Fraunces", Georgia, serif; font-size: 1.25rem; }
 .logo, .badge {
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   object-fit: contain;
+  flex: none;
+  background: #0e130c;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 3px;
 }
 .badge {
   display: grid;
   place-items: center;
-  border-radius: 8px;
   background: var(--paper);
   font-size: 0.68rem;
   letter-spacing: 0.04em;
+  padding: 0;
+}
+.team-head .logo,
+.team-head .badge { width: 72px; height: 72px; }
+.rating h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0;
 }
 .lean-col { text-align: right; }
 .lean-col strong { display: block; font-family: "Fraunces", Georgia, serif; font-size: 1.35rem; }
@@ -285,7 +305,7 @@ details li { margin: 0.35rem 0; color: var(--muted); }
   padding: 0.8rem;
   margin-bottom: 0.6rem;
 }
-.injuries strong, .rating h3, .sources h2 { display: block; margin: 0; }
+.injuries strong, .sources h2 { display: block; margin: 0; }
 .injuries p, .rating p { margin: 0.3rem 0; }
 .record { font-family: "Fraunces", Georgia, serif; font-size: 1.4rem; }
 .source-top { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.4rem; }
@@ -303,13 +323,36 @@ details li { margin: 0.35rem 0; color: var(--muted); }
     position: sticky;
     height: auto;
     z-index: 2;
-    flex-direction: row;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "brand refresh"
+      "links links";
+    gap: 0.45rem 0.6rem;
     align-items: center;
     border-right: 0;
     border-bottom: 1px solid var(--line);
+    padding: 0.7rem 0.75rem 0.65rem;
   }
-  .nav-links { flex-direction: row; }
+  .brand { grid-area: brand; flex-direction: row; gap: 0.15rem; align-items: baseline; }
+  .brand-mark { font-size: 1.35rem; }
+  .refresh { grid-area: refresh; justify-self: end; }
+  .nav-links {
+    grid-area: links;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.35rem;
+  }
+  .nav-links a,
+  .nav-disabled {
+    align-items: center;
+    text-align: center;
+    min-height: 44px;
+    justify-content: center;
+    padding: 0.45rem 0.2rem;
+  }
+  .nav-links a.active { box-shadow: inset 0 -3px 0 var(--nhl); }
+  .nav-hint { display: none; }
   .brand small { display: none; }
   .match, .matchup, .split, .form-list li { grid-template-columns: 1fr; }
   .team-head:last-child { justify-content: flex-start; text-align: left; }

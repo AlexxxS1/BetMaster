@@ -149,7 +149,7 @@ function TeamLine({
 }) {
   return (
     <div className="side">
-      <Logo team={team} />
+      <Logo team={team} size={40} />
       <div>
         <strong>{team.abbrev}</strong>
         <span>{team.name}</span>
