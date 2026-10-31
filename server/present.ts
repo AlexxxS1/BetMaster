@@ -21,6 +21,7 @@ import {
   listInjuries,
   listSnapshots,
   listSources,
+  listSplits,
   listTeams,
   type AppDatabase,
 } from "./db";
@@ -74,11 +75,14 @@ export function matchResponse(db: AppDatabase, id: string): MatchDetail | null {
   const analysis = bundle.analyses.get(game.id);
   const homeSnap = bundle.snapshots.get(game.homeTeamId) ?? null;
   const awaySnap = bundle.snapshots.get(game.awayTeamId) ?? null;
+  const splits = new Map(listSplits(db).map((row) => [row.teamId, row]));
   return {
     ...summary,
     season: game.season,
     homeSnapshot: homeSnap ? toSnapshot(homeSnap) : null,
     awaySnapshot: awaySnap ? toSnapshot(awaySnap) : null,
+    homeSplits: splits.get(game.homeTeamId) ?? null,
+    awaySplits: splits.get(game.awayTeamId) ?? null,
     homeForm: (analysis?.formHome ?? []).map((item) => ({
       gameId: item.gameId,
       startsAt: item.startsAt,

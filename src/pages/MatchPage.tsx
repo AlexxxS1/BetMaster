@@ -13,6 +13,7 @@ import {
   when,
 } from "../format";
 import { ChartCard } from "../Charts";
+import { Compare } from "../Compare";
 import { Logo } from "../Logo";
 import { useAppStatus } from "../status";
 
@@ -105,6 +106,16 @@ export function MatchPage() {
           Tohle je analýza zápasu, ne tip k sázce. Čísla říkají, jak utkání může vypadat.
         </p>
       </section>
+
+      <Compare
+        league={match.league}
+        away={match.away}
+        home={match.home}
+        awaySnapshot={match.awaySnapshot}
+        homeSnapshot={match.homeSnapshot}
+        awaySplits={match.awaySplits}
+        homeSplits={match.homeSplits}
+      />
 
       <section className="charts" data-testid="charts">
         <h2>Jak týmy vypadají</h2>

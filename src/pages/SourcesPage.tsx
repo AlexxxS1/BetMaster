@@ -8,6 +8,7 @@ const KIND: Record<SourceItem["kind"], string> = {
   results: "Výsledky a rozpis",
   standings: "Předzápasové hodnocení",
   injuries: "Absence",
+  splits: "Sezonní čísla",
 };
 
 const MODE: Record<SourceItem["mode"], string> = {

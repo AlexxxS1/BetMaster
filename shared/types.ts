@@ -143,6 +143,8 @@ export type MatchDetail = MatchSummary & {
   season: string;
   homeSnapshot: Snapshot | null;
   awaySnapshot: Snapshot | null;
+  homeSplits: TeamSplits | null;
+  awaySplits: TeamSplits | null;
   homeForm: FormItem[];
   awayForm: FormItem[];
   h2h: H2HItem[];
@@ -170,10 +172,26 @@ export type MatchesResponse = {
   matches: MatchSummary[];
 };
 
+export type SplitStat = {
+  key: string;
+  label: string;
+  value: number;
+  digits: number;
+  better: "high" | "low";
+};
+
+export type TeamSplits = {
+  teamId: string;
+  sourceName: string;
+  sourceUrl: string;
+  fetchedAt: string;
+  stats: SplitStat[];
+};
+
 export type SourceItem = {
   id: string;
   league: League | "all";
-  kind: "results" | "standings" | "injuries";
+  kind: "results" | "standings" | "injuries" | "splits";
   name: string;
   url: string;
   mode: SourceMode;

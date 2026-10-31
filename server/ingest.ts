@@ -1,6 +1,7 @@
 import type { League, SourceItem } from "../shared/types";
 import {
   countGames,
+  countSplits,
   distinctOrigins,
   getMeta,
   listGames,
@@ -8,7 +9,9 @@ import {
   listTeams,
   replaceInjuries,
   replaceLeague,
+  replaceSplits,
   setMeta,
+  upsertSources,
   writeSources,
   type AppDatabase,
 } from "./db";
@@ -17,6 +20,7 @@ import { normName } from "./names";
 import type { NormalizedInjury } from "./normalized";
 import { fetchEspnGames, fetchEspnInjuries, fetchEspnStandings } from "./sources/espn";
 import { fetchNhlBundle } from "./sources/nhl";
+import { fetchNbaSplits, fetchNhlSplits, type SplitFetch } from "./splits";
 import { HISTORY_DAYS, coversHistory, historyNote, oldestFinal } from "./history";
 
 const STALE_MS = 6 * 60 * 60 * 1000;
@@ -24,10 +28,12 @@ const STALE_MS = 6 * 60 * 60 * 1000;
 let current: Promise<void> | null = null;
 
 export function startIngest(db: AppDatabase, force = false): Promise<void> {
-  if (!force && isFresh(db)) return Promise.resolve();
   if (current) return current;
+  const fresh = !force && isFresh(db);
+  if (fresh && splitsReady(db)) return Promise.resolve();
   setRefreshing(true);
-  current = ingestLive(db).finally(() => {
+  const job = fresh ? ingestSplits(db) : ingestLive(db);
+  current = job.finally(() => {
     setRefreshing(false);
     current = null;
   });
@@ -139,6 +145,7 @@ async function ingestLive(db: AppDatabase): Promise<void> {
 
   await ingestInjuries(db, "nhl", new Map(), sources, warnings, fetchedAt);
   await ingestInjuries(db, "nba", nbaEspnIds, sources, warnings, fetchedAt);
+  await ingestSplits(db, sources, warnings);
 
   writeSources(db, sources);
   setMeta(db, "warnings", JSON.stringify(warnings));
@@ -275,6 +282,88 @@ function retained(
     fetchedAt,
     detail: error,
   };
+}
+
+async function ingestSplits(
+  db: AppDatabase,
+  sources?: SourceItem[],
+  warnings?: string[],
+): Promise<void> {
+  const ownSources: SourceItem[] = [];
+  const ownWarnings: string[] = [];
+  const bucket = sources ?? ownSources;
+  const notes = warnings ?? ownWarnings;
+  const fetchedAt = new Date().toISOString();
+  await loadLeagueSplits(db, "nhl", fetchNhlSplits, "nhl-splits", "NHL sezonní čísla", bucket, notes, fetchedAt);
+  await loadLeagueSplits(db, "nba", fetchNbaSplits, "nba-splits", "NBA sezonní čísla", bucket, notes, fetchedAt);
+  if (!sources) {
+    upsertSources(db, ownSources);
+    const previous = readWarningList(db).filter((item) => !/sezonní čísla/i.test(item));
+    setMeta(db, "warnings", JSON.stringify([...previous, ...ownWarnings]));
+  }
+}
+
+async function loadLeagueSplits(
+  db: AppDatabase,
+  league: League,
+  fetchRows: () => Promise<SplitFetch>,
+  id: string,
+  name: string,
+  sources: SourceItem[],
+  warnings: string[],
+  fetchedAt: string,
+): Promise<void> {
+  const page = league === "nhl" ? "https://www.nhl.com/stats/" : "https://www.espn.com/nba/stats";
+  try {
+    const result = await fetchRows();
+    if (result.rows.length < 20) throw new Error(result.failures[0] ?? `jen ${result.rows.length} týmů`);
+    replaceSplits(db, league, result.rows);
+    if (result.failures.length > 0) {
+      warnings.push(`${league.toUpperCase()} sezonní čísla: chybí ${result.failures.length} týmů.`);
+    }
+    sources.push({
+      id,
+      league,
+      kind: "splits",
+      name,
+      url: page,
+      mode: "live",
+      fetchedAt,
+      detail: `${result.note} Načteno ${result.rows.length} týmů.`,
+    });
+    console.log(`[betmaster] ${league.toUpperCase()} sezonní čísla ${result.rows.length} týmů`);
+  } catch (error) {
+    const text = message(error);
+    warnings.push(`${league.toUpperCase()} sezonní čísla: ${text}`);
+    const kept = countSplits(db, league) > 0;
+    sources.push({
+      id,
+      league,
+      kind: "splits",
+      name,
+      url: page,
+      mode: kept ? "live" : "blocked",
+      fetchedAt,
+      detail: kept
+        ? `Obnova sezonních čísel selhala (${text}). Zůstávají poslední stažená čísla.`
+        : `Sezonní srovnání se nepodařilo načíst (${text}).`,
+    });
+  }
+}
+
+function splitsReady(db: AppDatabase): boolean {
+  return countSplits(db, "nhl") >= 30 && countSplits(db, "nba") >= 28;
+}
+
+function readWarningList(db: AppDatabase): string[] {
+  const raw = getMeta(db, "warnings");
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string") : [];
+  } catch {
+    return [];
+  }
 }
 
 function isFresh(db: AppDatabase): boolean {

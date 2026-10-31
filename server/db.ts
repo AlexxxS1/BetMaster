@@ -2,7 +2,7 @@ import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { fileURLToPath } from "node:url";
-import type { League, Origin, SourceItem } from "../shared/types";
+import type { League, Origin, SourceItem, SplitStat, TeamSplits } from "../shared/types";
 import { teamId } from "./names";
 import type {
   NormalizedGame,
@@ -99,6 +99,14 @@ export function migrate(db: AppDatabase): void {
     CREATE TABLE IF NOT EXISTS meta (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS team_splits (
+      team_id TEXT PRIMARY KEY,
+      league TEXT NOT NULL,
+      source_name TEXT NOT NULL,
+      source_url TEXT NOT NULL,
+      fetched_at TEXT NOT NULL,
+      stats_json TEXT NOT NULL
     );
   `);
 }
@@ -232,6 +240,69 @@ export function replaceInjuries(
         injury.sourceUrl,
         injury.updatedAt,
         origin,
+      );
+    }
+  });
+}
+
+export function replaceSplits(db: AppDatabase, league: League, rows: TeamSplits[]): void {
+  const insert = db.prepare(`
+    INSERT INTO team_splits (team_id, league, source_name, source_url, fetched_at, stats_json)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `);
+  transaction(db, () => {
+    db.prepare("DELETE FROM team_splits WHERE league = ?").run(league);
+    for (const row of rows) {
+      insert.run(row.teamId, league, row.sourceName, row.sourceUrl, row.fetchedAt, JSON.stringify(row.stats));
+    }
+  });
+}
+
+export function listSplits(db: AppDatabase): TeamSplits[] {
+  return db
+    .prepare("SELECT * FROM team_splits")
+    .all()
+    .map((row) => {
+      const record = asRow(row);
+      return {
+        teamId: text(record, "team_id"),
+        sourceName: text(record, "source_name"),
+        sourceUrl: text(record, "source_url"),
+        fetchedAt: text(record, "fetched_at"),
+        stats: parseStats(record.stats_json),
+      };
+    })
+    .filter((row) => row.stats.length > 0);
+}
+
+export function countSplits(db: AppDatabase, league: League): number {
+  return numberField(db.prepare("SELECT COUNT(*) AS n FROM team_splits WHERE league = ?").get(league), "n");
+}
+
+export function upsertSources(db: AppDatabase, sources: SourceItem[]): void {
+  const insert = db.prepare(`
+    INSERT INTO source_log (id, league, kind, name, url, mode, detail, fetched_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+      league = excluded.league,
+      kind = excluded.kind,
+      name = excluded.name,
+      url = excluded.url,
+      mode = excluded.mode,
+      detail = excluded.detail,
+      fetched_at = excluded.fetched_at
+  `);
+  transaction(db, () => {
+    for (const source of sources) {
+      insert.run(
+        source.id,
+        source.league,
+        source.kind,
+        source.name,
+        source.url,
+        source.mode,
+        source.detail,
+        source.fetchedAt,
       );
     }
   });
@@ -452,4 +523,24 @@ function numberField(row: unknown, key: string): number {
 function numberOrNull(row: Record<string, unknown>, key: string): number | null {
   const value = row[key];
   return value == null ? null : Number(value);
+}
+
+function parseStats(value: unknown): SplitStat[] {
+  if (typeof value !== "string") return [];
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed.flatMap((item) => {
+      const record = item as Record<string, unknown>;
+      const key = typeof record.key === "string" ? record.key : "";
+      const label = typeof record.label === "string" ? record.label : "";
+      const amount = typeof record.value === "number" ? record.value : Number(record.value);
+      const digits = typeof record.digits === "number" ? record.digits : 1;
+      const better = record.better === "low" ? "low" : "high";
+      if (!key || !label || !Number.isFinite(amount)) return [];
+      return [{ key, label, value: amount, digits, better }];
+    });
+  } catch {
+    return [];
+  }
 }

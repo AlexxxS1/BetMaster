@@ -33,8 +33,14 @@ export function Shell() {
     <div className="shell">
       <header className="nav">
         <NavLink to="/" className={() => "brand"} end>
-          <span className="brand-mark">Bet</span>
-          <span className="brand-mark accent">Master</span>
+          <span className="brand-lockup">
+            <span className="brand-mark">Bet</span>
+            <span className="brand-mark accent">Master</span>
+          </span>
+          <span className="league-marks">
+            <LeagueMark src="https://assets.nhle.com/logos/nhl/svg/NHL_light.svg" label="NHL" />
+            <LeagueMark src="https://a.espncdn.com/i/teamlogos/leagues/500/nba.png" label="NBA" />
+          </span>
           <small>Analýza zápasů NBA a NHL</small>
         </NavLink>
         <nav className="nav-links" aria-label="Hlavní menu">
@@ -72,6 +78,22 @@ export function Shell() {
         </footer>
       </div>
     </div>
+  );
+}
+
+function LeagueMark({ src, label }: { src: string; label: string }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return <span className="league-fallback">{label}</span>;
+  return (
+    <img
+      className="league-logo"
+      src={src}
+      alt=""
+      width={28}
+      height={28}
+      referrerPolicy="no-referrer"
+      onError={() => setFailed(true)}
+    />
   );
 }
 
