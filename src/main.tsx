@@ -9,6 +9,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Shell } from "./App";
 import { Board } from "./pages/Board";
 import { MatchPage } from "./pages/MatchPage";
+import { RecordPage } from "./pages/RecordPage";
 import { SourcesPage } from "./pages/SourcesPage";
 import { StatusProvider } from "./status";
 import "./index.css";
@@ -21,6 +22,7 @@ createRoot(document.getElementById("root")!).render(
           <Route element={<Shell />}>
             <Route index element={<Board />} />
             <Route path="match/:id" element={<MatchPage />} />
+            <Route path="uspesnost" element={<RecordPage />} />
             <Route path="sources" element={<SourcesPage />} />
             <Route path="*" element={<p className="empty">Tahle stránka neexistuje.</p>} />
           </Route>

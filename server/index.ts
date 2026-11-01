@@ -7,6 +7,7 @@ import { openDatabase } from "./db";
 import { startIngest } from "./ingest";
 import { loadSampleIfEmpty } from "./sample";
 import { matchResponse, matchesResponse, sourcesResponse, statusOf } from "./present";
+import { recordResponse } from "./record";
 
 const db = openDatabase();
 const loadedSample = loadSampleIfEmpty(db);
@@ -36,6 +37,8 @@ app.get("/api/matches/:id", (c) => {
   if (!match) return c.json({ error: "Zápas nenalezen" }, 404);
   return c.json(match);
 });
+
+app.get("/api/record", (c) => c.json(recordResponse(db)));
 
 app.get("/api/sources", (c) =>
   c.json({

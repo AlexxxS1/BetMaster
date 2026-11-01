@@ -203,3 +203,43 @@ export type SourcesResponse = {
   sources: SourceItem[];
   status: StatusResponse;
 };
+
+export type RecordCounts = {
+  total: number;
+  successful: number;
+  unsuccessful: number;
+  rate: number | null;
+};
+
+export type RecordMonth = {
+  month: string;
+  label: string;
+  backtest: RecordCounts;
+  live: RecordCounts;
+};
+
+export type RecordRow = {
+  id: string;
+  league: League;
+  startsAt: string;
+  awayAbbrev: string;
+  homeAbbrev: string;
+  awayName: string;
+  homeName: string;
+  awayScore: number;
+  homeScore: number;
+  favored: "home" | "away";
+  favoredAbbrev: string;
+  homeWinProb: number;
+  success: boolean;
+  source: "backtest" | "live";
+  recordedAt: string | null;
+};
+
+export type RecordResponse = {
+  rule: string;
+  backtest: { all: RecordCounts; nba: RecordCounts; nhl: RecordCounts; even: number };
+  live: { all: RecordCounts; nba: RecordCounts; nhl: RecordCounts; pending: number; even: number };
+  months: RecordMonth[];
+  recent: RecordRow[];
+};

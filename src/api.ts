@@ -1,4 +1,4 @@
-import type { MatchDetail, MatchesResponse, SourcesResponse, StatusResponse } from "../shared/types";
+import type { MatchDetail, MatchesResponse, RecordResponse, SourcesResponse, StatusResponse } from "../shared/types";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, init);
@@ -23,6 +23,10 @@ export function getMatch(id: string): Promise<MatchDetail> {
 
 export function getSources(): Promise<SourcesResponse> {
   return request("/api/sources");
+}
+
+export function getRecord(): Promise<RecordResponse> {
+  return request("/api/record");
 }
 
 export function postIngest(): Promise<StatusResponse> {

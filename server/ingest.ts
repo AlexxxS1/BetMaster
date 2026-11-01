@@ -20,6 +20,7 @@ import { normName } from "./names";
 import type { NormalizedInjury } from "./normalized";
 import { fetchEspnGames, fetchEspnInjuries, fetchEspnStandings } from "./sources/espn";
 import { fetchNhlBundle } from "./sources/nhl";
+import { settleRecordedPicks } from "./record";
 import { fetchNbaSplits, fetchNhlSplits, type SplitFetch } from "./splits";
 import { HISTORY_DAYS, coversHistory, historyNote, oldestFinal } from "./history";
 
@@ -29,6 +30,11 @@ let current: Promise<void> | null = null;
 
 export function startIngest(db: AppDatabase, force = false): Promise<void> {
   if (current) return current;
+  try {
+    settleRecordedPicks(db);
+  } catch (error) {
+    console.error("[betmaster] záznam odhadů selhal", error);
+  }
   const fresh = !force && isFresh(db);
   if (fresh && splitsReady(db)) return Promise.resolve();
   setRefreshing(true);
@@ -159,6 +165,7 @@ async function ingestLive(db: AppDatabase): Promise<void> {
     "history_days",
     coversHistory(nhlOldest) && coversHistory(nbaOldest) ? String(HISTORY_DAYS) : "",
   );
+  settleRecordedPicks(db);
 }
 
 async function ingestInjuries(

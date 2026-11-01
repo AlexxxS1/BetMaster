@@ -108,6 +108,18 @@ export function migrate(db: AppDatabase): void {
       fetched_at TEXT NOT NULL,
       stats_json TEXT NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS recorded_picks (
+      game_id TEXT PRIMARY KEY,
+      league TEXT NOT NULL,
+      recorded_at TEXT NOT NULL,
+      starts_at TEXT NOT NULL,
+      home_win_prob REAL NOT NULL,
+      favored TEXT NOT NULL,
+      graded_at TEXT,
+      success INTEGER,
+      home_score INTEGER,
+      away_score INTEGER
+    );
   `);
 }
 
@@ -277,6 +289,83 @@ export function listSplits(db: AppDatabase): TeamSplits[] {
 
 export function countSplits(db: AppDatabase, league: League): number {
   return numberField(db.prepare("SELECT COUNT(*) AS n FROM team_splits WHERE league = ?").get(league), "n");
+}
+
+export type RecordedPick = {
+  gameId: string;
+  league: League;
+  recordedAt: string;
+  startsAt: string;
+  homeWinProb: number;
+  favored: "home" | "away" | "even";
+  gradedAt: string | null;
+  success: boolean | null;
+  homeScore: number | null;
+  awayScore: number | null;
+};
+
+export function listRecordedPicks(db: AppDatabase): RecordedPick[] {
+  return db
+    .prepare("SELECT * FROM recorded_picks")
+    .all()
+    .map((row) => {
+      const record = asRow(row);
+      const favored = text(record, "favored");
+      return {
+        gameId: text(record, "game_id"),
+        league: text(record, "league") as League,
+        recordedAt: text(record, "recorded_at"),
+        startsAt: text(record, "starts_at"),
+        homeWinProb: numberField(record, "home_win_prob"),
+        favored: favored === "away" || favored === "even" ? favored : "home",
+        gradedAt: textOrNull(record, "graded_at"),
+        success: record.success == null ? null : numberField(record, "success") === 1,
+        homeScore: numberOrNull(record, "home_score"),
+        awayScore: numberOrNull(record, "away_score"),
+      };
+    });
+}
+
+export function savePrematchPick(
+  db: AppDatabase,
+  pick: {
+    gameId: string;
+    league: League;
+    recordedAt: string;
+    startsAt: string;
+    homeWinProb: number;
+    favored: RecordedPick["favored"];
+  },
+): void {
+  if (pick.recordedAt >= pick.startsAt) return;
+  db.prepare(`
+    INSERT INTO recorded_picks (
+      game_id, league, recorded_at, starts_at, home_win_prob, favored, graded_at, success, home_score, away_score
+    ) VALUES (?, ?, ?, ?, ?, ?, NULL, NULL, NULL, NULL)
+    ON CONFLICT(game_id) DO UPDATE SET
+      league = excluded.league,
+      recorded_at = excluded.recorded_at,
+      starts_at = excluded.starts_at,
+      home_win_prob = excluded.home_win_prob,
+      favored = excluded.favored
+    WHERE recorded_picks.graded_at IS NULL
+      AND excluded.recorded_at < excluded.starts_at
+  `).run(pick.gameId, pick.league, pick.recordedAt, pick.startsAt, pick.homeWinProb, pick.favored);
+}
+
+export function gradeRecordedOnce(
+  db: AppDatabase,
+  gameId: string,
+  gradedAt: string,
+  success: boolean | null,
+  homeScore: number,
+  awayScore: number,
+): void {
+  db.prepare(`
+    UPDATE recorded_picks
+    SET graded_at = ?, success = ?, home_score = ?, away_score = ?
+    WHERE game_id = ? AND graded_at IS NULL
+  `).run(gradedAt, success == null ? null : success ? 1 : 0, homeScore, awayScore, gameId);
 }
 
 export function upsertSources(db: AppDatabase, sources: SourceItem[]): void {

@@ -59,6 +59,10 @@ export function Shell() {
               <small className="nav-hint">Nejdřív otevři zápas</small>
             </span>
           )}
+          <NavLink to="/uspesnost" data-testid="nav-uspesnost">
+            <span className="nav-label">Úspěšnost</span>
+            <small className="nav-hint">Jak odhady vyšly</small>
+          </NavLink>
           <NavLink to="/sources" data-testid="nav-zdroje">
             <span className="nav-label">Zdroje</span>
             <small className="nav-hint">Odkud jsou data</small>
