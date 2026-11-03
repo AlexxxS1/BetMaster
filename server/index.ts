@@ -6,6 +6,8 @@ import { BLOCKED_SOURCES } from "./limits";
 import { openDatabase } from "./db";
 import { startIngest } from "./ingest";
 import { loadSampleIfEmpty } from "./sample";
+import { anglesResponse } from "./angles";
+import { startBoxscores } from "./boxscore";
 import { matchResponse, matchesResponse, sourcesResponse, statusOf } from "./present";
 import { recordResponse } from "./record";
 
@@ -40,6 +42,8 @@ app.get("/api/matches/:id", (c) => {
 
 app.get("/api/record", (c) => c.json(recordResponse(db)));
 
+app.get("/api/angles", (c) => c.json(anglesResponse(db)));
+
 app.get("/api/sources", (c) =>
   c.json({
     sources: [...sourcesResponse(db), ...BLOCKED_SOURCES],
@@ -65,4 +69,5 @@ if (process.env.NODE_ENV === "production") {
 const port = Number(process.env.BETMASTER_API_PORT ?? (process.env.NODE_ENV === "production" ? 5180 : 8787));
 serve({ fetch: app.fetch, hostname: "0.0.0.0", port }, (info) => {
   console.log(`[betmaster] API http://127.0.0.1:${info.port}`);
+  if (process.env.BETMASTER_SKIP_LIVE !== "1") startBoxscores(db);
 });

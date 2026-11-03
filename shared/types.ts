@@ -155,6 +155,7 @@ export type MatchDetail = MatchSummary & {
   snapshotNote: string;
   charts: MatchChart[];
   history: HistoryWindow;
+  angles: MatchAngles;
 };
 
 export type StatusResponse = {
@@ -191,7 +192,7 @@ export type TeamSplits = {
 export type SourceItem = {
   id: string;
   league: League | "all";
-  kind: "results" | "standings" | "injuries" | "splits";
+  kind: "results" | "standings" | "injuries" | "splits" | "boxscore";
   name: string;
   url: string;
   mode: SourceMode;
@@ -242,4 +243,62 @@ export type RecordResponse = {
   live: { all: RecordCounts; nba: RecordCounts; nhl: RecordCounts; pending: number; even: number };
   months: RecordMonth[];
   recent: RecordRow[];
+};
+
+export type AngleMarketId =
+  | "nba-total-points"
+  | "nba-team-points"
+  | "nhl-total-goals"
+  | "nhl-team-goals"
+  | "nhl-match-shots"
+  | "nhl-pp-goals";
+
+export type AngleLine = {
+  id: string;
+  gameId: string;
+  league: League;
+  market: AngleMarketId;
+  marketLabel: string;
+  startsAt: string;
+  awayAbbrev: string;
+  homeAbbrev: string;
+  awayName: string;
+  homeName: string;
+  text: string;
+  detail: string;
+};
+
+export type MarketBacktest = {
+  market: AngleMarketId;
+  league: League;
+  label: string;
+  hits: number;
+  n: number;
+  rate: number | null;
+  shown: boolean;
+};
+
+export type AngleDay = {
+  date: string;
+  label: string;
+  lines: AngleLine[];
+};
+
+export type AnglesResponse = {
+  disclaimer: string;
+  responsible: string;
+  note: string;
+  ppNote: string;
+  coverageNote: string | null;
+  days: AngleDay[];
+  markets: MarketBacktest[];
+};
+
+export type MatchAngles = {
+  show: boolean;
+  lines: AngleLine[];
+  disclaimer: string;
+  responsible: string;
+  note: string;
+  ppNote: string;
 };

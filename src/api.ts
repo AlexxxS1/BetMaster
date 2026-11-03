@@ -1,4 +1,11 @@
-import type { MatchDetail, MatchesResponse, RecordResponse, SourcesResponse, StatusResponse } from "../shared/types";
+import type {
+  AnglesResponse,
+  MatchDetail,
+  MatchesResponse,
+  RecordResponse,
+  SourcesResponse,
+  StatusResponse,
+} from "../shared/types";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, init);
@@ -27,6 +34,10 @@ export function getSources(): Promise<SourcesResponse> {
 
 export function getRecord(): Promise<RecordResponse> {
   return request("/api/record");
+}
+
+export function getAngles(): Promise<AnglesResponse> {
+  return request("/api/angles");
 }
 
 export function postIngest(): Promise<StatusResponse> {

@@ -20,6 +20,7 @@ import { normName } from "./names";
 import type { NormalizedInjury } from "./normalized";
 import { fetchEspnGames, fetchEspnInjuries, fetchEspnStandings } from "./sources/espn";
 import { fetchNhlBundle } from "./sources/nhl";
+import { startBoxscores } from "./boxscore";
 import { settleRecordedPicks } from "./record";
 import { fetchNbaSplits, fetchNhlSplits, type SplitFetch } from "./splits";
 import { HISTORY_DAYS, coversHistory, historyNote, oldestFinal } from "./history";
@@ -166,6 +167,7 @@ async function ingestLive(db: AppDatabase): Promise<void> {
     coversHistory(nhlOldest) && coversHistory(nbaOldest) ? String(HISTORY_DAYS) : "",
   );
   settleRecordedPicks(db);
+  startBoxscores(db);
 }
 
 async function ingestInjuries(

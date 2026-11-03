@@ -120,6 +120,14 @@ export function migrate(db: AppDatabase): void {
       home_score INTEGER,
       away_score INTEGER
     );
+    CREATE TABLE IF NOT EXISTS nhl_box (
+      game_id TEXT PRIMARY KEY,
+      home_shots INTEGER NOT NULL,
+      away_shots INTEGER NOT NULL,
+      home_pp_goals INTEGER,
+      away_pp_goals INTEGER,
+      fetched_at TEXT NOT NULL
+    );
   `);
 }
 
@@ -424,6 +432,65 @@ export function listGames(db: AppDatabase): StoredGame[] {
 export function getGame(db: AppDatabase, id: string): StoredGame | null {
   const row = db.prepare("SELECT * FROM games WHERE id = ?").get(id);
   return row ? mapGame(row) : null;
+}
+
+export type StoredBox = {
+  gameId: string;
+  homeShots: number;
+  awayShots: number;
+  homePpGoals: number | null;
+  awayPpGoals: number | null;
+};
+
+export function listBoxes(db: AppDatabase): StoredBox[] {
+  return db
+    .prepare("SELECT * FROM nhl_box")
+    .all()
+    .map((row) => {
+      const record = asRow(row);
+      return {
+        gameId: text(record, "game_id"),
+        homeShots: numberField(record, "home_shots"),
+        awayShots: numberField(record, "away_shots"),
+        homePpGoals: numberOrNull(record, "home_pp_goals"),
+        awayPpGoals: numberOrNull(record, "away_pp_goals"),
+      };
+    });
+}
+
+export function countBoxes(db: AppDatabase): number {
+  return numberField(db.prepare("SELECT COUNT(*) AS n FROM nhl_box").get(), "n");
+}
+
+export function insertBoxes(db: AppDatabase, rows: StoredBox[], fetchedAt = new Date().toISOString()): void {
+  if (rows.length === 0) return;
+  const insert = db.prepare(`
+    INSERT INTO nhl_box (game_id, home_shots, away_shots, home_pp_goals, away_pp_goals, fetched_at)
+    VALUES (?, ?, ?, ?, ?, ?)
+    ON CONFLICT(game_id) DO UPDATE SET
+      home_shots = excluded.home_shots,
+      away_shots = excluded.away_shots,
+      home_pp_goals = excluded.home_pp_goals,
+      away_pp_goals = excluded.away_pp_goals,
+      fetched_at = excluded.fetched_at
+  `);
+  transaction(db, () => {
+    for (const row of rows) {
+      insert.run(row.gameId, row.homeShots, row.awayShots, row.homePpGoals, row.awayPpGoals, fetchedAt);
+    }
+  });
+}
+
+export function listMissingNhlBoxIds(db: AppDatabase): string[] {
+  return db
+    .prepare(`
+      SELECT id FROM games
+      WHERE league = 'nhl' AND status = 'final' AND home_score IS NOT NULL AND away_score IS NOT NULL
+        AND id NOT IN (SELECT game_id FROM nhl_box)
+      ORDER BY starts_at, id
+    `)
+    .all()
+    .map((row) => text(asRow(row), "id"));
 }
 
 export function listSnapshots(db: AppDatabase): StoredSnapshot[] {

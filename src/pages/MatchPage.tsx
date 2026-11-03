@@ -12,6 +12,7 @@ import {
   record,
   when,
 } from "../format";
+import { AngleFooter, AngleList } from "../Angles";
 import { ChartCard } from "../Charts";
 import { Compare } from "../Compare";
 import { Logo } from "../Logo";
@@ -106,6 +107,23 @@ export function MatchPage() {
           Tohle je analýza zápasu, ne tip k sázce. Čísla říkají, jak utkání může vypadat.
         </p>
       </section>
+
+      {match.angles.show ? (
+        <section className="angles" data-testid="angles-section">
+          <h2>Příležitosti z čísel</h2>
+          {match.angles.lines.length === 0 ? (
+            <p className="muted">K tomuhle zápasu teď není věta, která by v přepočtu vycházela výrazně nad polovinu.</p>
+          ) : (
+            <AngleList lines={match.angles.lines} linked={false} />
+          )}
+          <AngleFooter
+            disclaimer={match.angles.disclaimer}
+            responsible={match.angles.responsible}
+            note={match.angles.note}
+            ppNote={match.angles.ppNote}
+          />
+        </section>
+      ) : null}
 
       <Compare
         league={match.league}

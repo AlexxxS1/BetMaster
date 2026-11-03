@@ -7,6 +7,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Shell } from "./App";
+import { AnglesPage } from "./pages/AnglesPage";
 import { Board } from "./pages/Board";
 import { MatchPage } from "./pages/MatchPage";
 import { RecordPage } from "./pages/RecordPage";
@@ -22,6 +23,7 @@ createRoot(document.getElementById("root")!).render(
           <Route element={<Shell />}>
             <Route index element={<Board />} />
             <Route path="match/:id" element={<MatchPage />} />
+            <Route path="prilezitosti" element={<AnglesPage />} />
             <Route path="uspesnost" element={<RecordPage />} />
             <Route path="sources" element={<SourcesPage />} />
             <Route path="*" element={<p className="empty">Tahle stránka neexistuje.</p>} />

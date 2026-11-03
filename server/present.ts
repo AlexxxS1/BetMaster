@@ -9,6 +9,7 @@ import type {
   StatusResponse,
   TeamBrief,
 } from "../shared/types";
+import { matchAngles } from "./angles";
 import type { GameAnalysis } from "./analyze";
 import { analyzeSchedule } from "./analyze";
 import { buildMatchCharts } from "./charts";
@@ -143,6 +144,12 @@ export function matchResponse(db: AppDatabase, id: string): MatchDetail | null {
         })
       : [],
     history: historyWindow(db),
+    angles: matchAngles(db, {
+      id: game.id,
+      status: game.status,
+      startsAt: game.startsAt,
+      league: game.league,
+    }),
   };
 }
 

@@ -11,7 +11,7 @@
     "start": "NODE_ENV=production node --disable-warning=ExperimentalWarning --import tsx server/index.ts",
     "build": "vite build",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.server.json --noEmit",
-    "test": "node --disable-warning=ExperimentalWarning --import tsx --test server/model.test.ts server/analyze.test.ts server/sources.test.ts server/db.test.ts server/history.test.ts server/charts.test.ts server/splits.test.ts server/record.test.ts"
+    "test": "node --disable-warning=ExperimentalWarning --import tsx --test server/model.test.ts server/analyze.test.ts server/sources.test.ts server/db.test.ts server/history.test.ts server/charts.test.ts server/splits.test.ts server/record.test.ts server/angles.test.ts"
   },
   "dependencies": {
     "@fontsource/fraunces": "^5.2.5",
